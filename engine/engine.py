@@ -8,7 +8,7 @@ from engine.state import (
     GameState, PlayerState, CharacterOnField,
     PHASE_REFRESH, PHASE_DRAW, PHASE_DON,
     PHASE_MAIN, PHASE_ATTACK, PHASE_BLOCK,
-    PHASE_DAMAGE, PHASE_END,
+    PHASE_COUNTER, PHASE_DAMAGE, PHASE_END,
 )
 
 
@@ -27,6 +27,8 @@ class GameEngine:
             self._apply_attack(state, action)
         elif state.phase == PHASE_BLOCK:
             self._apply_block(state, action)
+        elif state.phase == PHASE_COUNTER:
+            self._apply_counter(state, action)
         return state
 
     # ------------------------------------------------------------------ #
@@ -95,24 +97,34 @@ class GameEngine:
                 # ブロッカーをKO
                 opp.field.pop(action.target_index)
                 opp.trash.append(blocker.card)
-                # リーダーへのダメージも発生（ブロック失敗）
-                # ※公式ルール: ブロックしてもパワー差でKO → ダメージなし
-                # ここではブロッカーKOのみでダメージなし
-            # ブロック成功 → ダメージなし
 
-        elif action.action_type == ActionType.PASS_BLOCK:
-            # ブロックしない → ダメージ解決
-            self._resolve_damage(state, atk_action, attacker_power)
+        # ブロック or パスどちらでもカウンターフェーズへ
+        state.counter_power = 0
+        state.phase = PHASE_COUNTER
 
-        # アタックフェーズに戻る（続けて攻撃可能）
-        state.pending_attack = None
-        state.phase = PHASE_ATTACK
+    # ------------------------------------------------------------------ #
+    #  カウンターフェーズの処理                                            #
+    # ------------------------------------------------------------------ #
+    def _apply_counter(self, state: GameState, action: Action):
+        atk_action = state.pending_attack
+        attacker_power = self._get_attacker_power(state, atk_action)
+        defender = state.opp()
 
-        # 攻撃済みとしてマーク
-        state.already_attacked.add(atk_action.attacker_index)
+        if action.action_type == ActionType.USE_COUNTER:
+            # カードを手札から捨ててカウンター値を加算
+            card = defender.hand.pop(action.hand_index)
+            defender.trash.append(card)
+            state.counter_power += card.counter
+            # カウンターフェーズは複数枚使えるのでフェーズ継続
 
-        # 勝敗チェック
-        self._check_winner(state)
+        elif action.action_type == ActionType.PASS_COUNTER:
+            # カウンター終了 → ダメージ解決
+            self._resolve_damage_with_counter(state, atk_action, attacker_power)
+            state.counter_power = 0
+            state.pending_attack = None
+            state.phase = PHASE_ATTACK
+            state.already_attacked.add(atk_action.attacker_index)
+            self._check_winner(state)
 
     def _get_attacker_power(self, state: GameState, atk_action: Action) -> int:
         p = state.current()
@@ -121,28 +133,35 @@ class GameEngine:
         return p.field[atk_action.attacker_index].effective_power()
 
     # ------------------------------------------------------------------ #
-    #  ダメージ解決                                                        #
+    #  ダメージ解決（カウンター対応）                                      #
     # ------------------------------------------------------------------ #
-    def _resolve_damage(self, state: GameState, atk_action: Action, attacker_power: int):
+    def _resolve_damage_with_counter(self, state: GameState, atk_action: Action, attacker_power: int):
         opp_idx = state.opponent()
         opp = state.players[opp_idx]
 
         if atk_action.target_index == -1:
-            # リーダーへのアタック → ライフを削る
-            if len(opp.life) > 0:
-                life_card = opp.life.pop(0)
-                opp.hand.append(life_card)  # ライフをトリガーとして手札へ
-                # ライフが0になったら次のダメージで敗北
-                if len(opp.life) == 0:
-                    # もう1ダメージでゲームオーバー（ライフが0の状態でダメージ）
-                    pass
+            # リーダーへのアタック
+            defender_power = opp.leader.effective_power() + state.counter_power
+            if attacker_power > defender_power:
+                # ダメージ：ライフを1枚手札に加える
+                if len(opp.life) > 0:
+                    life_card = opp.life.pop(0)
+                    opp.hand.append(life_card)
+                else:
+                    # ライフ0でダメージ → 敗北
+                    state.winner = state.current_player
         else:
             # キャラへのアタック
             target = opp.field[atk_action.target_index]
-            target_power = target.effective_power()
+            target_power = target.effective_power() + state.counter_power
             if attacker_power > target_power:
                 opp.field.pop(atk_action.target_index)
                 opp.trash.append(target.card)
+
+    def _resolve_damage(self, state: GameState, atk_action: Action, attacker_power: int):
+        """後方互換のため残す（内部でカウンター0として呼ぶ）"""
+        state.counter_power = 0
+        self._resolve_damage_with_counter(state, atk_action, attacker_power)
 
     # ------------------------------------------------------------------ #
     #  ターン終了処理                                                      #

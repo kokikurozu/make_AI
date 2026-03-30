@@ -47,6 +47,7 @@ PHASE_DON      = "don"       # DONフェーズ（2枚追加）
 PHASE_MAIN     = "main"      # メインフェーズ（カード使用・DON付与）
 PHASE_ATTACK   = "attack"    # アタックフェーズ
 PHASE_BLOCK    = "block"     # ブロックフェーズ（相手のターン）
+PHASE_COUNTER  = "counter"   # カウンターフェーズ（守備側が手札からカウンター）
 PHASE_DAMAGE   = "damage"    # ダメージ解決
 PHASE_END      = "end"       # ターン終了
 
@@ -62,6 +63,7 @@ class GameState:
     # アタックフェーズ管理
     pending_attack: Optional[Action] = None   # 解決待ちのアタック
     already_attacked: Set[int] = field(default_factory=set)  # 攻撃済みindex集合（-1=リーダー）
+    counter_power: int = 0                    # カウンターで積まれた合計パワー
 
     def opponent(self) -> int:
         return 1 - self.current_player
@@ -91,6 +93,8 @@ class GameState:
             return self._legal_attack_actions()
         elif self.phase == PHASE_BLOCK:
             return self._legal_block_actions()
+        elif self.phase == PHASE_COUNTER:
+            return self._legal_counter_actions()
         return []
 
     # ------------------------------------------------------------------ #
@@ -187,6 +191,27 @@ class GameState:
                 ))
         # ブロックしない
         actions.append(Action(action_type=ActionType.PASS_BLOCK))
+        return actions
+
+    # ------------------------------------------------------------------ #
+    #  カウンターフェーズの合法手（守備側が手札からカウンターを切る）        #
+    # ------------------------------------------------------------------ #
+    def _legal_counter_actions(self) -> List[Action]:
+        actions = []
+        # カウンターフェーズは守備側（opponent）の手番
+        defender = self.opp()
+
+        for i, card in enumerate(defender.hand):
+            # カウンター値を持つカードは使用可能
+            if card.counter is not None and card.counter > 0:
+                actions.append(Action(
+                    action_type=ActionType.USE_COUNTER,
+                    hand_index=i,
+                    don_count=card.counter  # don_countをカウンター値として流用
+                ))
+
+        # カウンターを使わずに終了
+        actions.append(Action(action_type=ActionType.PASS_COUNTER))
         return actions
 
     def __repr__(self):

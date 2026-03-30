@@ -4,12 +4,14 @@ from typing import Optional
 
 
 class ActionType(Enum):
-    PLAY_CARD  = "play_card"   # 手札からキャラを出す
-    ATTACH_DON = "attach_don"  # DONをリーダー/キャラにつける
-    ATTACK     = "attack"      # アタック宣言
-    BLOCK      = "block"       # ブロック
-    PASS_BLOCK = "pass_block"  # ブロックしない
-    END_TURN   = "end_turn"    # ターン終了
+    PLAY_CARD    = "play_card"    # 手札からキャラを出す
+    ATTACH_DON   = "attach_don"   # DONをリーダー/キャラにつける
+    ATTACK       = "attack"       # アタック宣言
+    BLOCK        = "block"        # ブロック
+    PASS_BLOCK   = "pass_block"   # ブロックしない
+    USE_COUNTER  = "use_counter"  # 手札からカウンターを使う
+    PASS_COUNTER = "pass_counter" # カウンターを使わない
+    END_TURN     = "end_turn"     # ターン終了
 
 
 @dataclass(frozen=True)
@@ -39,6 +41,10 @@ class Action:
             return f"Block(Field[{self.target_index}])"
         elif self.action_type == ActionType.PASS_BLOCK:
             return "PassBlock"
+        elif self.action_type == ActionType.USE_COUNTER:
+            return f"UseCounter(hand[{self.hand_index}] +{self.don_count})"
+        elif self.action_type == ActionType.PASS_COUNTER:
+            return "PassCounter"
         elif self.action_type == ActionType.END_TURN:
             return "EndTurn"
         return f"Action({self.action_type})"
