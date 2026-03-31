@@ -14,9 +14,13 @@
       "has_rush": false,
       "has_blocker": false,
       "don_requirement": 0,
-      "feature": ["超新星", "麦わらの一味"],
+      "feature": [
+        "超新星",
+        "麦わらの一味"
+      ],
       "effect": "起動メイン[ターン1回] このリーダーか自分のキャラ1枚にレストのドン!!1枚までを付与する。",
-      "copies_in_deck": 1
+      "copies_in_deck": 1,
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/one-piece/ST01/ST01-001_EN.webp"
     },
     {
       "card_id": "ST01-002",
@@ -30,9 +34,12 @@
       "has_rush": false,
       "has_blocker": false,
       "don_requirement": 2,
-      "feature": ["麦わらの一味"],
+      "feature": [
+        "麦わらの一味"
+      ],
       "effect": "[ドン!!×2][アタック時] 相手は、このバトル中、パワー5000以上のキャラのブロッカーを発動できない。[トリガー] このカードを登場させる。",
-      "copies_in_deck": 4
+      "copies_in_deck": 4,
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/one-piece/ST01/ST01-002_EN.webp"
     },
     {
       "card_id": "ST01-003",
@@ -46,9 +53,13 @@
       "has_rush": false,
       "has_blocker": false,
       "don_requirement": 0,
-      "feature": ["動物", "アラバスタ王国"],
+      "feature": [
+        "動物",
+        "アラバスタ王国"
+      ],
       "effect": "",
-      "copies_in_deck": 4
+      "copies_in_deck": 4,
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/one-piece/ST01/ST01-003_EN.webp"
     },
     {
       "card_id": "ST01-004",
@@ -62,9 +73,12 @@
       "has_rush": false,
       "has_blocker": false,
       "don_requirement": 2,
-      "feature": ["麦わらの一味"],
+      "feature": [
+        "麦わらの一味"
+      ],
       "effect": "[ドン!!×2] このキャラは速攻を得る。",
-      "copies_in_deck": 4
+      "copies_in_deck": 4,
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/one-piece/ST01/ST01-004_EN.webp"
     },
     {
       "card_id": "ST01-005",
@@ -78,9 +92,13 @@
       "has_rush": false,
       "has_blocker": true,
       "don_requirement": 0,
-      "feature": ["麦わらの一味", "魚人族"],
+      "feature": [
+        "麦わらの一味",
+        "魚人族"
+      ],
       "effect": "[ブロッカー]",
-      "copies_in_deck": 4
+      "copies_in_deck": 4,
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/one-piece/ST01/ST01-005_EN.webp"
     },
     {
       "card_id": "ST01-006",
@@ -94,9 +112,13 @@
       "has_rush": false,
       "has_blocker": false,
       "don_requirement": 0,
-      "feature": ["麦わらの一味", "動物"],
+      "feature": [
+        "麦わらの一味",
+        "動物"
+      ],
       "effect": "[登場時] 自分のデッキの上から1枚をライフの一番上に置く。",
-      "copies_in_deck": 4
+      "copies_in_deck": 4,
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/one-piece/ST01/ST01-006_EN.webp"
     },
     {
       "card_id": "ST01-007",
@@ -110,9 +132,12 @@
       "has_rush": false,
       "has_blocker": false,
       "don_requirement": 0,
-      "feature": ["麦わらの一味"],
+      "feature": [
+        "麦わらの一味"
+      ],
       "effect": "[登場時] 自分のデッキの上から1枚を手札に加える。",
-      "copies_in_deck": 4
+      "copies_in_deck": 4,
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/one-piece/ST01/ST01-007_EN.webp"
     },
     {
       "card_id": "ST01-008",
@@ -126,9 +151,12 @@
       "has_rush": false,
       "has_blocker": false,
       "don_requirement": 0,
-      "feature": ["麦わらの一味"],
+      "feature": [
+        "麦わらの一味"
+      ],
       "effect": "[アタック時] 相手のキャラ1枚をレストにする。",
-      "copies_in_deck": 4
+      "copies_in_deck": 4,
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/one-piece/ST01/ST01-008_EN.webp"
     },
     {
       "card_id": "ST01-009",
@@ -142,9 +170,13 @@
       "has_rush": false,
       "has_blocker": false,
       "don_requirement": 0,
-      "feature": ["麦わらの一味", "アラバスタ王国"],
+      "feature": [
+        "麦わらの一味",
+        "アラバスタ王国"
+      ],
       "effect": "[登場時] 自分のドン!!デッキの上から1枚を手札に加える。",
-      "copies_in_deck": 4
+      "copies_in_deck": 4,
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/one-piece/ST01/ST01-009_EN.webp"
     },
     {
       "card_id": "ST01-010",
@@ -158,9 +190,12 @@
       "has_rush": false,
       "has_blocker": true,
       "don_requirement": 0,
-      "feature": ["麦わらの一味"],
+      "feature": [
+        "麦わらの一味"
+      ],
       "effect": "[ブロッカー] [登場時] ドン!!カードを1枚、自分のデッキの下に戻す。その後、自分のドン!!デッキの上から2枚を表向きにする。",
-      "copies_in_deck": 4
+      "copies_in_deck": 4,
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/one-piece/ST01/ST01-010_EN.webp"
     },
     {
       "card_id": "ST01-011",
@@ -174,9 +209,12 @@
       "has_rush": false,
       "has_blocker": false,
       "don_requirement": 0,
-      "feature": ["麦わらの一味"],
+      "feature": [
+        "麦わらの一味"
+      ],
       "effect": "",
-      "copies_in_deck": 2
+      "copies_in_deck": 2,
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/one-piece/ST01/ST01-011_EN.webp"
     },
     {
       "card_id": "ST01-012",
@@ -190,9 +228,13 @@
       "has_rush": true,
       "has_blocker": false,
       "don_requirement": 0,
-      "feature": ["超新星", "麦わらの一味"],
+      "feature": [
+        "超新星",
+        "麦わらの一味"
+      ],
       "effect": "[速攻]",
-      "copies_in_deck": 2
+      "copies_in_deck": 2,
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/one-piece/ST01/ST01-012_EN.webp"
     },
     {
       "card_id": "ST01-013",
@@ -206,9 +248,13 @@
       "has_rush": false,
       "has_blocker": false,
       "don_requirement": 1,
-      "feature": ["超新星", "麦わらの一味"],
+      "feature": [
+        "超新星",
+        "麦わらの一味"
+      ],
       "effect": "[ドン!!×1][アタック時] このバトル中、相手はブロッカーを発動できない。",
-      "copies_in_deck": 2
+      "copies_in_deck": 2,
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/one-piece/ST01/ST01-013_EN.webp"
     },
     {
       "card_id": "ST01-014",
@@ -224,7 +270,8 @@
       "don_requirement": 0,
       "feature": [],
       "effect": "[カウンター] 自分のリーダーか自分のキャラ1枚のパワーをこのバトル中+2000する。[トリガー] 自分のリーダーか自分のキャラ1枚のパワーをこのターン中+2000する。",
-      "copies_in_deck": 2
+      "copies_in_deck": 2,
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/one-piece/ST01/ST01-014_EN.webp"
     },
     {
       "card_id": "ST01-015",
@@ -240,7 +287,8 @@
       "don_requirement": 0,
       "feature": [],
       "effect": "[メイン] 相手のキャラ1枚をKOする。そのキャラのコストは4以下でなければならない。",
-      "copies_in_deck": 2
+      "copies_in_deck": 2,
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/one-piece/ST01/ST01-015_EN.webp"
     },
     {
       "card_id": "ST01-016",
@@ -256,7 +304,8 @@
       "don_requirement": 0,
       "feature": [],
       "effect": "[カウンター] 自分のリーダーか自分のキャラ1枚のパワーをこのバトル中+2000する。[トリガー] 相手のコスト2以下のキャラ1枚をKOする。",
-      "copies_in_deck": 2
+      "copies_in_deck": 2,
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/one-piece/ST01/ST01-016_EN.webp"
     },
     {
       "card_id": "ST01-017",
@@ -270,9 +319,12 @@
       "has_rush": false,
       "has_blocker": false,
       "don_requirement": 0,
-      "feature": ["麦わらの一味"],
+      "feature": [
+        "麦わらの一味"
+      ],
       "effect": "[起動メイン][ターン1回] 自分の手札を1枚捨てる。その後、自分のデッキの上から1枚を手札に加える。",
-      "copies_in_deck": 2
+      "copies_in_deck": 2,
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/one-piece/ST01/ST01-017_EN.webp"
     }
   ]
 }

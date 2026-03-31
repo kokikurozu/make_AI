@@ -47,12 +47,13 @@
   .stat.don span { color: var(--accent); }
   .cards-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
   .card { background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
-          padding: 8px 10px; min-width: 90px; cursor: default; transition: all 0.15s;
+          padding: 4px; min-width: 80px; width: 80px; cursor: default; transition: all 0.15s;
           position: relative; }
-  .card.resting { opacity: 0.55; border-style: dashed; }
+  .card-img { width: 100%; border-radius: 6px; display: block; }
+  .card.resting { opacity: 0.55; border-style: dashed; transform: rotate(5deg); }
   .card.has-rush { border-color: #ff9f43; }
   .card.has-blocker { border-color: var(--accent2); }
-  .card.leader { border-color: var(--accent); background: var(--surface2); }
+  .card.leader { border-color: var(--accent); border-width: 2px; width: 90px; min-width: 90px; }
   .card-name { font-weight: 700; font-size: 11px; margin-bottom: 4px; white-space: nowrap;
                overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
   .card-stats { display: flex; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 10px; }
@@ -180,13 +181,21 @@ function cardHTML(c, extraClass='') {
     c.summoning_sick ? '<span class="tag sick">召喚酔い</span>' : '',
   ].join('');
   const power = c.effective_power !== undefined ? c.effective_power : c.power;
-  return `<div class="card${resting}${rush}${blocker} ${extraClass}">
+
+  // 画像があれば表示、なければテキストカード
+  const imgHTML = c.image_url
+    ? `<img src="${c.image_url}" alt="${c.name}" class="card-img" 
+        onerror="this.style.display='none';this.nextSibling.style.display='block'">`
+    + `<div class="card-text-fallback" style="display:none">`
+    + `<div class="card-name">${c.name}</div>`
+    + `<div class="card-stats"><span class="co">C:${c.cost}</span><span class="pw">P:${power}</span></div>`
+    + `</div>`
+    : `<div class="card-name">${c.name}</div>`
+    + `<div class="card-stats"><span class="co">C:${c.cost}</span><span class="pw">P:${power}</span></div>`;
+
+  return `<div class="card${resting}${rush}${blocker} ${extraClass}" title="${c.name} / Cost:${c.cost} / Power:${power}">
     ${don}
-    <div class="card-name">${c.name}</div>
-    <div class="card-stats">
-      <span class="co">C:${c.cost}</span>
-      <span class="pw">P:${power}</span>
-    </div>
+    ${imgHTML}
     ${tags}
   </div>`;
 }

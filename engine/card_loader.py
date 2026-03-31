@@ -22,7 +22,17 @@ TYPE_MAP = {
     "stage":     CardType.STAGE,
 }
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
+
+IMAGE_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "images")
+DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data") 
+
+
+def _resolve_image_url(card_id: str, remote_url: str) -> str:
+    """ローカル画像があればそのURLを、なければリモートURLを返す"""
+    local_path = os.path.join(IMAGE_DIR, f"{card_id}.webp")
+    if os.path.exists(local_path):
+        return f"/images/{card_id}.webp"
+    return remote_url  # ローカルになければ外部URL
 
 
 def load_set(set_file: str) -> List[Card]:
@@ -44,6 +54,7 @@ def load_set(set_file: str) -> List[Card]:
             has_rush=c.get("has_rush", False),
             has_blocker=c.get("has_blocker", False),
             don_requirement=c.get("don_requirement", 0),
+            image_url=_resolve_image_url(c["card_id"], c.get("image_url", "")),
         )
         copies = c.get("copies_in_deck", 1)
         if card.card_type != CardType.LEADER:
@@ -70,6 +81,7 @@ def load_leader(set_file: str) -> Card:
                 counter=None,
                 has_rush=False,
                 has_blocker=False,
+                image_url=_resolve_image_url(c["card_id"], c.get("image_url", "")),
             )
     raise ValueError(f"リーダーカードが見つかりません: {set_file}")
 

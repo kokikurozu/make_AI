@@ -31,6 +31,7 @@ class Card:
     has_rush: bool = False
     has_blocker: bool = False
     don_requirement: int = 0
+    image_url: str = ""
 
     def __repr__(self):
         return f"[{self.name} / cost:{self.cost} / pow:{self.power}]"

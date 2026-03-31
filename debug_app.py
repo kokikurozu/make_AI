@@ -5,25 +5,11 @@ from engine.card import Card, CardType, Color
 from engine.state import GameState
 from engine.engine import GameEngine, create_initial_state
 from engine.actions import Action, ActionType
+from engine.card_loader import load_deck
 
 app = Flask(__name__, static_folder="debug_ui")
 engine = GameEngine()
 state: GameState = None
-
-
-def make_test_deck(color: Color):
-    leader = Card("L001", "ルフィ（リーダー）", CardType.LEADER, color, 0, 5000)
-    deck = []
-    for i in range(50):
-        cost = (i % 5) + 1
-        deck.append(Card(
-            f"C{i:03d}", f"キャラ{i}", CardType.CHARACTER, color,
-            cost, cost * 1000,
-            counter=1000 if i % 3 == 0 else None,
-            has_rush=(i % 10 == 0),
-            has_blocker=(i % 7 == 0),
-        ))
-    return leader, deck
 
 
 def serialize_card(card):
@@ -35,6 +21,7 @@ def serialize_card(card):
         "type": card.card_type.value, "color": card.color.value,
         "counter": card.counter,
         "has_rush": card.has_rush, "has_blocker": card.has_blocker,
+        "image_url": card.image_url,
     }
 
 
@@ -82,8 +69,8 @@ def serialize_state(state: GameState):
 @app.route("/api/new_game", methods=["POST"])
 def new_game():
     global state
-    l0, d0 = make_test_deck(Color.RED)
-    l1, d1 = make_test_deck(Color.BLUE)
+    l0, d0 = load_deck("st01.json")
+    l1, d1 = load_deck("st01.json")
     state = create_initial_state(d0, l0, d1, l1)
     return jsonify(serialize_state(state))
 
@@ -114,6 +101,12 @@ def random_step():
     if actions:
         engine.apply_action(state, random.choice(actions))
     return jsonify(serialize_state(state))
+
+
+@app.route("/images/<path:filename>")
+def card_image(filename):
+    """ローカルに保存した画像を返す"""
+    return send_from_directory(os.path.join("data", "images"), filename)
 
 
 @app.route("/")
