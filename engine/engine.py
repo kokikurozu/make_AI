@@ -201,13 +201,14 @@ class GameEngine:
     #  勝敗チェック                                                        #
     # ------------------------------------------------------------------ #
     def _check_winner(self, state: GameState):
-        for i, player in enumerate(state.players):
-            if len(player.life) == 0:
-                # ライフが0の状態でリーダーにアタックされたら敗北
-                # ここでは簡略化: ライフ0で次のターンに入ったら敗北チェック
-                pass
-        # TODO: ライフ0の状態でリーダーへのアタックが通ったら敗北
-        # _resolve_damage で管理する
+        """
+        勝敗判定。
+        メインの判定は _resolve_damage_with_counter 内で実施済み：
+          ライフ0 かつ リーダーへのダメージが通る → state.winner = 攻撃側
+        ここでは安全のため再確認のみ行う。
+        """
+        if state.winner is not None:
+            return
 
 
 def create_initial_state(deck0: List[Card], leader0: Card,

@@ -126,11 +126,82 @@ def test_copy_state():
     print("✓ test_copy_state passed")
 
 
+def test_win_condition():
+    """勝敗判定テスト：ライフ0でダメージを受けたら敗北"""
+    leader0, deck0 = make_test_deck(Color.RED)
+    leader1, deck1 = make_test_deck(Color.BLUE)
+    state = create_initial_state(deck0, leader0, deck1, leader1)
+    engine = GameEngine()
+
+    # Player1のライフを0にする
+    state.players[1].life = []
+
+    # 攻撃が通るようにPlayer0のリーダーにDONをつける（6000 > 5000）
+    state.players[0].leader.don_attached = 1
+
+    # アタックフェーズに進める
+    state.phase = "attack"
+    state.already_attacked = set()
+
+    from engine.actions import Action, ActionType
+    atk = Action(action_type=ActionType.ATTACK, attacker_index=-1, target_index=-1)
+    engine.apply_action(state, atk)
+
+    assert state.phase == "block", f"ブロックフェーズになっていない: {state.phase}"
+
+    engine.apply_action(state, Action(action_type=ActionType.PASS_BLOCK))
+    assert state.phase == "counter", f"カウンターフェーズになっていない: {state.phase}"
+
+    engine.apply_action(state, Action(action_type=ActionType.PASS_COUNTER))
+
+    # ライフ0でダメージ → Player0の勝利
+    assert state.winner == 0, f"勝者がPlayer0になっていない: winner={state.winner}"
+    assert state.is_terminal(), "ゲームが終了していない"
+    print(f"✓ test_win_condition passed (winner=Player{state.winner})")
+
+
+def test_life_damage():
+    """ライフダメージのテスト：ライフが1枚手札に加わる"""
+    leader0, deck0 = make_test_deck(Color.RED)
+    leader1, deck1 = make_test_deck(Color.BLUE)
+    state = create_initial_state(deck0, leader0, deck1, leader1)
+    engine = GameEngine()
+
+    initial_life = len(state.players[1].life)
+    initial_hand = len(state.players[1].hand)
+
+    # アタックフェーズに進める
+    state.phase = "attack"
+    state.already_attacked = set()
+
+    # リーダーで相手リーダーを攻撃（リーダーpower=5000 > 相手リーダーpower=5000 ではないのでダメージなし）
+    # → powerを上げてダメージが通るようにする
+    from engine.state import CharacterOnField
+    state.players[0].leader.don_attached = 1  # 6000 > 5000
+
+    from engine.actions import Action, ActionType
+    atk = Action(action_type=ActionType.ATTACK, attacker_index=-1, target_index=-1)
+    engine.apply_action(state, atk)
+
+    # ブロックなし・カウンターなし
+    engine.apply_action(state, Action(action_type=ActionType.PASS_BLOCK))
+    engine.apply_action(state, Action(action_type=ActionType.PASS_COUNTER))
+
+    # ライフが1枚減り手札に加わっているはず
+    assert len(state.players[1].life) == initial_life - 1, \
+        f"ライフが減っていない: {len(state.players[1].life)}"
+    assert len(state.players[1].hand) == initial_hand + 1, \
+        f"手札が増えていない: {len(state.players[1].hand)}"
+    print(f"✓ test_life_damage passed (life: {initial_life}→{len(state.players[1].life)}, hand: {initial_hand}→{len(state.players[1].hand)})")
+
+
 if __name__ == "__main__":
     print("=== ワンピカAI エンジンテスト ===\n")
     test_initial_state()
     test_legal_actions_main()
     test_play_card()
     test_copy_state()
+    test_win_condition()
+    test_life_damage()
     test_random_game()
     print("\n全テスト完了!")
