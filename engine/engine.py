@@ -10,6 +10,7 @@ from engine.state import (
     PHASE_MAIN, PHASE_ATTACK, PHASE_BLOCK,
     PHASE_COUNTER, PHASE_DAMAGE, PHASE_END,
 )
+from engine.effect_executor import execute_trigger
 
 
 class GameEngine:
@@ -42,9 +43,12 @@ class GameEngine:
             p.don_available -= card.cost
             char = CharacterOnField(
                 card=card,
-                summoning_sick=not card.has_rush  # 速攻なら召喚酔いなし
+                summoning_sick=not card.has_rush
             )
             p.field.append(char)
+            # 登場時効果を発動
+            execute_trigger("on_play", state, card.card_id,
+                            state.current_player, char)
 
         elif action.action_type == ActionType.ATTACH_DON:
             p.don_available -= action.don_count
@@ -76,8 +80,16 @@ class GameEngine:
             p = state.current()
             if action.attacker_index == -1:
                 p.leader.is_resting = True
+                char_on_field = p.leader
+                card_id = p.leader.card.card_id
             else:
                 p.field[action.attacker_index].is_resting = True
+                char_on_field = p.field[action.attacker_index]
+                card_id = char_on_field.card.card_id
+
+            # アタック時効果を発動
+            execute_trigger("on_attack", state, card_id,
+                            state.current_player, char_on_field)
 
     # ------------------------------------------------------------------ #
     #  ブロックフェーズの処理                                              #
