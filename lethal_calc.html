@@ -1,0 +1,319 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ワンピカ リーサル計算機</title>
+<!--
+  ワンピースカードゲームのリーサル計算機（単独ファイル・サーバー不要）。
+  相手手札のカウンター構成を全網羅し、ライフドロー（通ると相手の手札が
+  増える実ルール）まで確率ノードとして解く。GitHub Pagesにこのファイルを
+  置くだけで公開できる。カード画像は権利物のため使わず抽象表示。
+  モデルの仮定: 同値は攻撃側勝ち / 止めるにはC≥攻撃力-4000 /
+  ブロッカー1体=攻撃1回吸収 / トリガー非考慮 / 引いた区分は公開扱い(楽観近似)
+-->
+<style>
+:root{--bg:#0d1a12;--ink:#e8f2ea;--dim:#8faa96;--line:#2a4434;--ok:#5ad18a;--hot:#ff6b6b;--gold:#ffd166}
+body{background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif;margin:0;padding:14px;max-width:900px;margin:auto}
+h1{font-size:17px;margin:6px 0 12px}
+.form{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:10px;margin-bottom:12px;font-size:12px;color:var(--dim)}
+.form input{background:#0c1712;border:1px solid var(--line);color:var(--ink);border-radius:5px;padding:4px 6px}
+#f_atk{width:210px}.form input[type=number]{width:50px}
+button{background:#16281e;border:1px solid var(--line);border-radius:7px;color:var(--ink);padding:5px 12px;cursor:pointer}
+button:hover{border-color:var(--ok)}
+.sum{font-size:12px;color:var(--dim);margin:8px 0}
+.ok{color:var(--ok);font-weight:700}.ng{color:var(--hot)}
+.board{border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0}
+.row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;min-height:96px}
+.lbl{font-size:11px;color:var(--dim);margin:4px 0}
+.card{position:relative;width:64px;height:90px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;border:1px solid #0008;background:linear-gradient(160deg,#8e2f2f,#4c1520)}
+.card.leader{background:linear-gradient(160deg,#b8862f,#5a3a10)}
+.card.used{filter:grayscale(.9) brightness(.5);transform:rotate(90deg) scale(.82)}
+.card.now{outline:3px solid var(--hot);outline-offset:2px}
+.donb{position:absolute;bottom:-7px;left:-4px;background:#b8860bdd;border-radius:5px;font-size:11px;font-weight:800;padding:1px 5px}
+.atkb{position:absolute;top:-13px;left:50%;transform:translateX(-50%);white-space:nowrap;background:#7a1f1f;color:#ffd7d7;border:1px solid var(--hot);border-radius:5px;font-size:11px;font-weight:800;padding:1px 7px;z-index:3}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.chip{border:1px solid var(--line);border-radius:8px;padding:3px 9px;font-size:12px;background:#12241a}
+.chip.gone{opacity:.3;text-decoration:line-through}
+.nav{display:flex;gap:8px;align-items:center;margin:12px 0;flex-wrap:wrap}
+.rep{background:#1b2c22}.rep.hit{border-color:var(--ok)}
+.crumb{font-size:11px;color:var(--dim);border-left:2px solid var(--line);padding-left:8px;margin:8px 0}
+.win{font-size:15px;color:var(--ok);font-weight:800}
+.life{display:flex;gap:4px}
+.lifec{width:24px;height:34px;border-radius:4px;background:#5a1620;border:1px solid var(--hot)}
+.lifec.gone{background:#222;border-color:#333}
+.note{font-size:10px;color:var(--dim);margin-top:16px;line-height:1.6}
+</style></head><body>
+<h1>ワンピカ リーサル計算機 <span class="sum">カウンター構成の全網羅 × ライフドロー込み確率</span></h1>
+<div class="form">
+  <input id="f_atk" placeholder="アタッカー 例: 3000,5000,5000" value="3000,5000,5000">
+  ドン<input id="f_don" type="number" value="10">
+  相手ライフ<input id="f_life" type="number" value="1">
+  相手手札<input id="f_hand" type="number" value="4">
+  ブロッカー<input id="f_blk" type="number" value="0">
+  相手ドン<input id="f_odon" type="number" value="0">
+  <br>想定手札 1000×<input id="f_c1" type="number" placeholder="-">
+  2000×<input id="f_c2" type="number" placeholder="-">
+  EV×<input id="f_ev" type="number" placeholder="-">
+  ｜未確認プール(手札含む) カウンターレス<input id="f_p0" type="number" value="22">
+  1000<input id="f_p1" type="number" value="24">
+  2000<input id="f_p2" type="number" value="2">
+  EV<input id="f_p3" type="number" value="2">
+  <label><input id="f_auto" type="checkbox" checked> 相手の応手を自動</label>
+  <button onclick="calc()">計算</button>
+</div>
+<div id="out">条件を入れて「計算」。プールの初期値はST-01ミラー</div>
+<div class="note">
+仮定: 同値は攻撃側勝ち／止めるには合計カウンター ≥ 攻撃力−4000／ブロッカー1体=攻撃1回吸収／
+イベント(EV)は+3000でコスト1（相手ドン分だけ使用可）／トリガー非考慮（慎重に見るならライフ+1で）／
+ライフを受けると未確認プール(手札含む)から1枚が相手の手札へ（区分は公開扱いの楽観近似）
+</div>
+<script>
+const LEADER = 5000;
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------------- ソルバー（Python版 psolve/ptree の移植） ---------------- */
+let MEMO;
+function key(a,d,l,b,x1,x2,x3,o,pool){ return a.join('.')+'|'+d+'|'+l+'|'+b+'|'+x1+','+x2+','+x3+'|'+o+'|'+pool.join(','); }
+function minimalStops(x1,x2,x3max,req){
+  const out=[];
+  for(let y1=0;y1<=x1;y1++)for(let y2=0;y2<=x2;y2++)for(let y3=0;y3<=x3max;y3++){
+    const c=y1*1000+y2*2000+y3*3000;
+    if(c<req)continue;
+    if((y1&&c-1000>=req)||(y2&&c-2000>=req)||(y3&&c-3000>=req))continue;
+    out.push([y1,y2,y3]);
+  }
+  return out;
+}
+function psolve(atts,d,life,blk,x1,x2,x3,odon,pool){
+  const k=key(atts,d,life,blk,x1,x2,x3,odon,pool);
+  if(MEMO.has(k))return MEMO.get(k);
+  if(!atts.length){MEMO.set(k,0);return 0;}
+  let best=0;
+  const maxc=x1*1000+x2*2000+Math.min(x3,odon)*3000+3000*Math.min(life,pool[1]+pool[2]+pool[3]);
+  for(let i=0;i<atts.length;i++){
+    if(i>0&&atts[i]===atts[i-1])continue;
+    const rest=atts.slice(0,i).concat(atts.slice(i+1));
+    const dhi=Math.min(d,Math.max(0,Math.floor((4000+maxc-atts[i])/1000)+1));
+    for(let di=0;di<=dhi;di++){
+      const v=pdef(rest,d-di,life,blk,x1,x2,x3,odon,pool,atts[i]+di*1000);
+      if(v>best){best=v;if(best>=1){MEMO.set(k,1);return 1;}}
+    }
+  }
+  MEMO.set(k,best);return best;
+}
+function pdef(rest,d,life,blk,x1,x2,x3,odon,pool,power){
+  if(power<LEADER)return psolve(rest,d,life,blk,x1,x2,x3,odon,pool);
+  let worst;
+  if(life===0){worst=1;}
+  else{
+    const tot=pool[0]+pool[1]+pool[2]+pool[3];
+    if(tot===0)worst=psolve(rest,d,life-1,blk,x1,x2,x3,odon,pool);
+    else{
+      worst=0;
+      for(let c=0;c<4;c++){
+        if(!pool[c])continue;
+        const np=pool.slice();np[c]--;
+        const nx=[x1,x2,x3];if(c>0)nx[c-1]++;
+        worst+=pool[c]/tot*psolve(rest,d,life-1,blk,nx[0],nx[1],nx[2],odon,np);
+      }
+    }
+  }
+  if(blk>0)worst=Math.min(worst,psolve(rest,d,life,blk-1,x1,x2,x3,odon,pool));
+  const req=power-4000;
+  if(req>0)for(const[y1,y2,y3]of minimalStops(x1,x2,Math.min(x3,odon),req)){
+    worst=Math.min(worst,psolve(rest,d,life,blk,x1-y1,x2-y2,x3-y3,odon-y3,pool));
+    if(worst<=0)return 0;
+  }
+  return worst;
+}
+function pmove(atts,d,life,blk,x1,x2,x3,odon,pool){
+  let best=[null,null,-1];
+  const maxc=x1*1000+x2*2000+Math.min(x3,odon)*3000+3000*Math.min(life,pool[1]+pool[2]+pool[3]);
+  for(let i=0;i<atts.length;i++){
+    if(i>0&&atts[i]===atts[i-1])continue;
+    const rest=atts.slice(0,i).concat(atts.slice(i+1));
+    const dhi=Math.min(d,Math.max(0,Math.floor((4000+maxc-atts[i])/1000)+1));
+    for(let di=0;di<=dhi;di++){
+      const v=pdef(rest,d-di,life,blk,x1,x2,x3,odon,pool,atts[i]+di*1000);
+      if(v>best[2])best=[i,di,v];
+    }
+  }
+  return best;
+}
+function ptree(atts,d,life,blk,x1,x2,x3,odon,pool){
+  if(!atts.length)return{done:true,p:0,fail:true};
+  const[i,di,v]=pmove(atts,d,life,blk,x1,x2,x3,odon,pool);
+  if(i==null||v<=0)return{done:true,p:0,fail:true};
+  const rest=atts.slice(0,i).concat(atts.slice(i+1));
+  const power=atts[i]+di*1000;
+  const node={move:atts[i]+(di?'+'+di+'ドン':'')+' = '+power+' でアタック',
+              base:atts[i],don:di,p:Math.round(v*1000)/1000,don_left:d-di,replies:[]};
+  if(power>=LEADER){
+    if(life===0){
+      node.replies.push({label:'通す → 勝ち',use:{pass:true},win:true});
+    }else{
+      const tot=pool[0]+pool[1]+pool[2]+pool[3], labs=['カウンターレス','1000','2000','EV'], draws=[];
+      for(let c=0;c<4;c++){
+        if(!tot||!pool[c])continue;
+        const np=pool.slice();np[c]--;
+        const nx=[x1,x2,x3];if(c>0)nx[c-1]++;
+        draws.push({label:labs[c],prob:Math.round(pool[c]/tot*1000)/1000,
+                    node:ptree(rest,d-di,life-1,blk,nx[0],nx[1],nx[2],odon,np)});
+      }
+      node.replies.push({label:'通す（ライフから1枚）',use:{pass:true},draw:draws});
+    }
+    if(blk>0)node.replies.push({label:'ブロック',use:{block:true},
+      node:ptree(rest,d-di,life,blk-1,x1,x2,x3,odon,pool)});
+    const req=power-4000;
+    if(req>0)for(const[y1,y2,y3]of minimalStops(x1,x2,Math.min(x3,odon),req)){
+      const lab=[y1?'1000×'+y1:'',y2?'2000×'+y2:'',y3?'EV×'+y3:''].filter(Boolean).join('+');
+      node.replies.push({label:lab+'で止める',use:{c1:y1,c2:y2,ev:y3},
+        node:ptree(rest,d-di,life,blk,x1-y1,x2-y2,x3-y3,odon-y3,pool)});
+    }
+  }
+  return node;
+}
+function comb(n,k){if(k<0||k>n)return 0;let r=1;for(let i=0;i<k;i++)r=r*(n-i)/(i+1);return Math.round(r);}
+
+/* ---------------- 画面 ---------------- */
+let D=null, PATH=[];
+function calc(){
+  MEMO=new Map();
+  const atts=$('f_atk').value.split(',').map(x=>parseInt(x)).filter(x=>!isNaN(x)).sort((a,b)=>b-a);
+  const inp={attackers:atts,don:+$('f_don').value,life:+$('f_life').value,
+             hand:+$('f_hand').value,blockers:+$('f_blk').value,opp_don:+$('f_odon').value};
+  const basePool=[+$('f_p0').value,+$('f_p1').value,+$('f_p2').value,+$('f_p3').value];
+  if(!atts.length){$('out').innerHTML='<span class="ng">アタッカーを入れてください</span>';return;}
+  // 全構成のドロー込み期待成功率
+  let total=0, nOK=0, nAll=0, denom=comb(basePool.reduce((a,b)=>a+b,0),inp.hand);
+  let hardest=null;
+  for(let c1=0;c1<=Math.min(inp.hand,basePool[1]);c1++)
+  for(let c2=0;c2<=Math.min(inp.hand-c1,basePool[2]);c2++)
+  for(let ev=0;ev<=Math.min(inp.hand-c1-c2,basePool[3]);ev++){
+    const c0=inp.hand-c1-c2-ev;
+    if(c0>basePool[0])continue;
+    nAll++;
+    const pr=comb(basePool[1],c1)*comb(basePool[2],c2)*comb(basePool[3],ev)*comb(basePool[0],c0)/denom;
+    const pool=[basePool[0]-c0,basePool[1]-c1,basePool[2]-c2,basePool[3]-ev];
+    const p=psolve(atts,inp.don,inp.life,inp.blockers,c1,c2,ev,inp.opp_don,pool);
+    total+=pr*p;
+    if(p>=1){nOK++;const g=c1*1000+c2*2000+Math.min(ev,inp.opp_don)*3000;
+      if(!hardest||g>hardest.g)hardest={c1,c2,ev,g};}
+  }
+  // 手順を出す構成: 指定 > 最難の確定構成 > 最頻構成
+  let cc;
+  const fc1=$('f_c1').value,fc2=$('f_c2').value,fev=$('f_ev').value;
+  if(fc1!==''||fc2!==''||fev!=='')cc={c1:+fc1||0,c2:+fc2||0,ev:+fev||0,tag:'（指定）'};
+  else if(hardest)cc={...hardest,tag:'（確定で通る最難構成）'};
+  else cc={c1:Math.min(2,basePool[1]),c2:0,ev:0,tag:'（代表）'};
+  const c0=inp.hand-cc.c1-cc.c2-cc.ev;
+  const pool=[basePool[0]-Math.max(0,c0),basePool[1]-cc.c1,basePool[2]-cc.c2,basePool[3]-cc.ev].map(x=>Math.max(0,x));
+  const tree=ptree(atts,inp.don,inp.life,inp.blockers,cc.c1,cc.c2,cc.ev,inp.opp_don,pool);
+  D={inputs:inp,tree:(tree.fail?null:tree),p_total:total,n_ok:nOK,n_all:nAll,
+     comp:'1000×'+cc.c1+' 2000×'+cc.c2+' EV×'+cc.ev+cc.tag,
+     comp_nums:{c1:cc.c1,c2:cc.c2,ev:cc.ev}};
+  PATH=[]; render();
+}
+function go(i){PATH.push(i);render();}
+function go2(i,j){PATH.push([i,j]);render();}
+function back(){if(PATH.length){PATH.pop();render();}}
+function pickReply(n){
+  let best=-1,bk=1e18;
+  n.replies.forEach((r,i)=>{
+    const u=r.use||{};let key2;
+    if(u.block)key2=0;
+    else if(u.c1!=null)key2=1000*(u.c1||0)+2000*(u.c2||0)+3000*(u.ev||0);
+    else key2=1e17;
+    if(key2<bk){bk=key2;best=i;}
+  });
+  return best;
+}
+function goAuto(){
+  const{st,n}=replay();
+  if(st.done||st.failed||!n||n.done)return;
+  const i=pickReply(n),r=n.replies[i];
+  if(r.draw){
+    let x=Math.random(),j=0;
+    for(;j<r.draw.length-1;j++){x-=r.draw[j].prob;if(x<=0)break;}
+    PATH.push([i,j]);
+  }else if(r.win){PATH.push(i);}
+  else PATH.push(i);
+  render();
+}
+function replay(){
+  const inp=D.inputs;
+  const st={atk:inp.attackers.map(p=>({base:p,don:0,used:false,now:false})),
+            don:inp.don,life:inp.life,blk:inp.blockers,
+            comp:{...D.comp_nums},extra:[],crumbs:[],done:false,failed:false};
+  let n=D.tree;
+  const useA=(node)=>{const a=st.atk.find(x=>!x.used&&x.base===node.base);
+    if(a){a.don=node.don;a.now=true;}st.don-=node.don;return a;};
+  for(const step of PATH){
+    const i=Array.isArray(step)?step[0]:step, j=Array.isArray(step)?step[1]:null;
+    const a=useA(n); const r=n.replies[i]; let lab=r.label;
+    if(a){a.used=true;a.now=false;}
+    const u=r.use||{};
+    if(u.pass&&st.life>0)st.life--;
+    if(u.block)st.blk--;
+    st.comp.c1-=(u.c1||0);st.comp.c2-=(u.c2||0);st.comp.ev-=(u.ev||0);
+    if(r.win){st.done=true;st.crumbs.push(esc(n.move)+' → <b style="color:var(--gold)">'+esc(lab)+'</b>');break;}
+    if(r.draw&&j!=null){const dd=r.draw[j];lab+=' ／ 引き:<b>'+esc(dd.label)+'</b>';
+      if(dd.label!=='カウンターレス')st.extra.push(dd.label); n=dd.node;}
+    else n=r.node;
+    st.crumbs.push((n&&n.p!=null?'P'+Math.round(n.p*100)+'% ｜ ':'')+esc(lab));
+    if(n&&n.done){if(n.fail)st.failed=true;else st.done=true;}
+  }
+  if(!st.done&&!st.failed&&n&&n.move)useA(n);
+  return{st,n};
+}
+function render(){
+  let h='<div class="sum">'+D.n_ok+'/'+D.n_all+'構成に確定で通る ／ '
+    +'<b class="ok">ライフドロー込み成功率 '+Math.round(D.p_total*100)+'%</b>'
+    +' ／ 手順の想定構成: <b>'+esc(D.comp)+'</b></div>';
+  if(!D.tree){$('out').innerHTML=h+'<div class="ng">この構成に必勝手順はありません</div>';return;}
+  const{st,n}=replay();
+  h+='<div class="board"><div class="lbl">相手</div><div class="row">';
+  h+='<div class="card leader">5k</div>';
+  h+='<div><div class="lbl">ライフ</div><div class="life">';
+  for(let i=0;i<D.inputs.life;i++)h+='<div class="lifec'+(i<D.inputs.life-st.life?' gone':'')+'"></div>';
+  h+='</div></div><div><div class="lbl">手札（想定構成）</div><div class="chips">';
+  for(const[k,lab]of[['c1','1000'],['c2','2000'],['ev','EV']]){
+    const total=D.comp_nums[k],left=st.comp[k];
+    for(let i=0;i<total;i++)h+='<div class="chip'+(i>=left?' gone':'')+'">'+lab+'</div>';
+  }
+  const c0=D.inputs.hand-D.comp_nums.c1-D.comp_nums.c2-D.comp_nums.ev;
+  for(let i=0;i<c0;i++)h+='<div class="chip">カウンターレス</div>';
+  st.extra.forEach(x=>{h+='<div class="chip" style="border-color:var(--gold)">引:'+esc(x)+'</div>';});
+  h+='</div></div>';
+  if(D.inputs.blockers)h+='<div><div class="lbl">ブロッカー</div><div class="chips">'
+    +Array.from({length:D.inputs.blockers},(_,i)=>'<div class="chip'+(i>=st.blk?' gone':'')+'">ブロッカー</div>').join('')+'</div></div>';
+  h+='</div></div>';
+  h+='<div class="board"><div class="lbl">自分のアタッカー（残ドン '+st.don+'）</div><div class="row" style="padding-top:14px">';
+  st.atk.forEach(a=>{
+    const t=a.base+a.don*1000;
+    h+='<div class="card'+(a.used?' used':'')+(a.now?' now':'')+'">'
+      +(a.now?'<span class="atkb">⚔ '+(t/1000)+'k</span>':'')
+      +(a.base/1000)+'k'
+      +(a.don?'<span class="donb">+'+a.don+'</span>':'')+'</div>';
+  });
+  h+='</div></div>';
+  if(st.crumbs.length)h+='<div class="crumb">'+st.crumbs.join('<br>')+'</div>';
+  h+='<div class="nav"><button onclick="back()">◀ 一手戻す</button>';
+  if(st.failed)h+='<span class="ng" style="font-weight:800">この分岐は通らない（引きが悪かった）</span>';
+  else if(st.done)h+='<span class="win">リーサル達成</span>';
+  else{
+    h+='<span class="sum">次: <b>'+esc(n.move)+'</b>'
+      +(n.p!=null?' <b class="ok">成功率'+Math.round(n.p*100)+'%</b>':'')+'</span>';
+    if($('f_auto').checked){
+      h+='<button class="rep hit" onclick="goAuto()">▶ 一手先（相手は自動応手）</button>';
+    }else{
+      n.replies.forEach((r,i)=>{
+        if(r.draw)r.draw.forEach((dd,j)=>{
+          h+='<button class="rep hit" onclick="go2('+i+','+j+')">通す→引き:'+esc(dd.label)+' ('+Math.round(dd.prob*100)+'%)</button>';});
+        else h+='<button class="rep'+(r.win?' hit':'')+'" onclick="go('+i+')">'+esc(r.label)+'</button>';
+      });
+    }
+  }
+  h+='</div>';
+  $('out').innerHTML=h;
+}
+</script></body></html>
